@@ -1,0 +1,5 @@
+{
+  "name": "Aetheris Research Assistant",
+  "description": "An advanced, auditor-level AI research platform. Features multimodal document analysis, comparative cross-document synthesis, skeptical fact-checking with live web grounding, interactive Plotly visualizations, and a deadline-aware research planning system.",
+  "requestFramePermissions": []
+}

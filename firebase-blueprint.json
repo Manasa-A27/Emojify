@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "ResearchSession": {
+      "title": "Research Session",
+      "description": "A saved research analysis session containing metadata and results. Detailed data is stored in subcollections.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique session ID" },
+        "name": { "type": "string", "description": "User-defined name for the session" },
+        "userId": { "type": "string", "description": "The UID of the owner" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" },
+        "result": {
+          "type": "object",
+          "description": "The analysis result from Gemini",
+          "properties": {
+            "summary": { "type": "string" },
+            "keyFindings": { "type": "array", "items": { "type": "string" } },
+            "dataPoints": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "label": { "type": "string" },
+                  "value": { "type": "number" }
+                }
+              }
+            },
+            "sources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "snippet": { "type": "string" },
+                  "page": { "type": "number" }
+                }
+              }
+            },
+            "verifications": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "claim": { "type": "string" },
+                  "status": { "type": "string", "enum": ["verified", "unverified", "contradicted"] },
+                  "source": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "totalPages": { "type": "number" },
+            "readingTime": { "type": "string" },
+            "complexity": { "type": "string", "enum": ["Low", "Medium", "High"] },
+            "confidenceScore": { "type": "number" }
+          }
+        },
+        "topics": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["id", "name", "userId", "createdAt"]
+    },
+    "SessionFile": {
+      "title": "Session File",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "data": { "type": "string", "description": "Base64 encoded image data" },
+        "page": { "type": "number" }
+      }
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Task": {
+      "title": "Task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "subtasks": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  },
+  "firestore": {
+    "/sessions/{sessionId}": {
+      "schema": "ResearchSession",
+      "description": "User research sessions"
+    },
+    "/sessions/{sessionId}/files/{fileId}": {
+      "schema": "SessionFile",
+      "description": "Files associated with a session"
+    },
+    "/sessions/{sessionId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat history for a session"
+    },
+    "/sessions/{sessionId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Tasks for a session"
+    }
+  }
+}

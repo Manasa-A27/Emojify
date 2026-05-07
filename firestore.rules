@@ -1,0 +1,128 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: sessions
+// Document ID: {sessionId}
+// Fields:
+//   - id: string (required) - Unique session ID
+//   - name: string (required) - User-defined name
+//   - userId: string (required) - The UID of the owner
+//   - createdAt: string (required) - ISO 8601 creation timestamp
+//   - updatedAt: string (optional) - ISO 8601 update timestamp
+//   - result: map (optional) - Analysis result object
+//
+// Subcollection: files
+// Document ID: {fileId}
+// Fields: {id, name, type, data, page}
+//
+// Subcollection: messages
+// Document ID: {messageId}
+// Fields: {role, text, timestamp}
+//
+// Subcollection: tasks
+// Document ID: {taskId}
+// Fields: {id, text, completed, subtasks}
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidSession(data) {
+      return data.id is string && data.id.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.userId is string && data.userId == request.auth.uid &&
+             isValidDateString(data.createdAt);
+    }
+
+    function isValidFile(data) {
+      return data.id is string && data.name is string && data.type is string && data.data is string;
+    }
+
+    function isValidMessage(data) {
+      return data.role in ['user', 'model'] && data.text is string;
+    }
+
+    function isValidTask(data) {
+      return data.id is string && data.text is string && data.completed is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /sessions/{sessionId} {
+      // Users can only see their own sessions
+      allow read: if isOwner(resource.data.userId);
+      
+      // Users can create their own sessions
+      allow create: if isAuthenticated() && 
+                    isValidSession(request.resource.data) &&
+                    request.resource.data.id == sessionId;
+      
+      // Users can update their own sessions
+      allow update: if isDocOwner() && 
+                    isValidSession(request.resource.data) &&
+                    request.resource.data.id == resource.data.id &&
+                    request.resource.data.createdAt == resource.data.createdAt;
+      
+      // Users can delete their own sessions
+      allow delete: if isDocOwner();
+
+      // Subcollections
+      match /files/{fileId} {
+        allow read: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+        allow write: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid && isValidFile(request.resource.data);
+      }
+
+      match /messages/{messageId} {
+        allow read: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+        allow write: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid && isValidMessage(request.resource.data);
+      }
+
+      match /tasks/{taskId} {
+        allow read: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid;
+        allow write: if get(/databases/$(database)/documents/sessions/$(sessionId)).data.userId == request.auth.uid && isValidTask(request.resource.data);
+      }
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
