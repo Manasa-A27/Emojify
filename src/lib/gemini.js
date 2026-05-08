@@ -1,39 +1,14 @@
-import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-export interface ResearchResult {
-  summary: string;
-  comparativeAnalysis?: string;
-  keyFindings: string[];
-  risks?: string[];
-  sentimentScore?: number;
-  dataPoints: { label: string; value: number }[];
-  sources: { title: string; page?: number; snippet: string }[];
-  verifications: { 
-    claim: string; 
-    status: 'verified' | 'unverified' | 'contradicted'; 
-    source?: string;
-    truthScore?: number;
-    explanation?: string;
-    searchQuery?: string;
-  }[];
-  metrics: {
-    totalPages: number;
-    readingTime: string;
-    complexity: 'Low' | 'Medium' | 'High';
-    confidenceScore: number;
-  };
-  topics: string[];
-}
-
-const searchTool: FunctionDeclaration = {
+const searchTool = {
   name: "googleSearch",
   parameters: {
-    type: Type.OBJECT,
+    type: "OBJECT",
     properties: {
       query: {
-        type: Type.STRING,
+        type: "STRING",
         description: "The search query to verify facts or find more information."
       }
     },
@@ -41,10 +16,7 @@ const searchTool: FunctionDeclaration = {
   }
 };
 
-export async function analyzeDocuments(
-  files: { name: string; data: string; mimeType: string }[],
-  userPrompt: string
-): Promise<ResearchResult> {
+async function analyzeDocuments(files, userPrompt) {
   const model = "gemini-3.1-pro-preview";
 
   const fileParts = files.map(f => ({
@@ -119,18 +91,14 @@ export async function analyzeDocuments(
   });
 
   try {
-    return JSON.parse(response.text || "{}") as ResearchResult;
+    return JSON.parse(response.text || "{}");
   } catch (e) {
     console.error("Failed to parse Gemini response", e);
     throw new Error("Failed to analyze documents. Please try again.");
   }
 }
 
-export async function chatWithDocuments(
-  history: { role: 'user' | 'model'; parts: { text: string }[] }[],
-  newPrompt: string,
-  files: { name: string; data: string; mimeType: string }[]
-) {
+async function chatWithDocuments(history, newPrompt, files) {
   const model = "gemini-3.1-pro-preview";
   
   const fileParts = files.map(f => ({
