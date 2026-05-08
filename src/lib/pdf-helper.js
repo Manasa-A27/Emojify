@@ -5,10 +5,10 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 // Set worker source for pdfjs
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
-export async function pdfToImages(file: File): Promise<{ data: string; page: number }[]> {
+export async function pdfToImages(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const images: { data: string; page: number }[] = [];
+  const images = [];
 
   // Limit to first 50 pages for better research coverage
   const numPages = Math.min(pdf.numPages, 50);
@@ -33,12 +33,12 @@ export async function pdfToImages(file: File): Promise<{ data: string; page: num
   return images;
 }
 
-export async function fileToBase64(file: File): Promise<string> {
+export async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1];
+      const base64 = reader.result.split(',')[1];
       resolve(base64);
     };
     reader.onerror = error => reject(error);
